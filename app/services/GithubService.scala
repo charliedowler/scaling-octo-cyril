@@ -10,21 +10,25 @@ import scala.util.matching.Regex
 
 object GithubService {
 
-  def startAsyncTasks(pullrequest_event: JsValue) = {
-    val comments: String = (pullrequest_event \ "pull_request" \ "comments_url").as[String]
+  val approved = "approved"
 
-    LabelService.labelExists("", "").onComplete({
+  def startAsyncTasks(pullrequest_event: JsValue) = {
+    val labels_url = (pullrequest_event \ "repository" \ "labels_url").as[String]
+    val comments_url = (pullrequest_event \ "pull_request" \ "comments_url").as[String]
+    val issue = (pullrequest_event \ "pull_request" \ "_links" \ "issue" \ "href").as[String]
+
+    LabelService.labelExists(labels_url.replace("{/name}", "/" + approved)).onComplete({
       exists =>
         if (!exists.get) {
-          LabelService.createLabel("", "", "")
+          LabelService.createLabel(labels_url.replace("{/name}", ""), approved, "199c4b").onComplete(value => this.fetchComments(comments_url, issue + "/labels"))
         } else {
-          this.fetchComments(comments)
+          this.fetchComments(comments_url, issue + "/labels")
         }
     })
 
   }
 
-  def fetchComments(comments: String): Future[String] = {
+  def fetchComments(comments: String, labels: String): Future[String] = {
     val prom = Promise[String]
     val req: WSRequestHolder = AuthService.authenticateRequest(comments)
 
@@ -57,13 +61,13 @@ object GithubService {
           }
         }
 
-        LabelService.isLinked("", "").onComplete(isLinked => {
+        LabelService.isLinked(labels + "/" + approved, approved).onComplete(isLinked => {
           val linked = isLinked.get
           if (isApproved && !linked) {
-            LabelService.linkLabel("", "")
+            LabelService.linkLabel(labels, approved)
           }
           else if (!isApproved && linked) {
-            LabelService.removeLabel("", "")
+            LabelService.removeLabel(labels + "/" + approved)
           }
         })
     }
