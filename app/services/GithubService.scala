@@ -61,7 +61,7 @@ object GithubService {
           }
         }
 
-        LabelService.isLinked(labels + "/" + approved, approved).onComplete(isLinked => {
+        LabelService.isLinked(labels, approved).onComplete(isLinked => {
           val linked = isLinked.get
           if (isApproved && !linked) {
             LabelService.linkLabel(labels, approved)

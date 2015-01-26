@@ -26,7 +26,7 @@ object LabelService {
   def createLabel(path: String, name: String, colour: String): Future[Any] = {
     val promise = Promise[Any]
 
-    AuthService.authenticateRequest("https://api.github.com/repos/charliedowler/scaling-octo-cyril/labels")
+    AuthService.authenticateRequest(path)
       .post("{\"name\": \""+ name + "\", \"color\": \"" + colour + "\"}").map {
       request =>
         promise.success()
@@ -38,7 +38,7 @@ object LabelService {
   def isLinked(path: String, name: String): Future[Boolean] = {
     val promise = Promise[Boolean]
 
-    AuthService.authenticateRequest("https://api.github.com/repos/charliedowler/scaling-octo-cyril/issues/1/labels")
+    AuthService.authenticateRequest(path)
       .get().map {
       request =>
         promise.success(request.json.as[List[JsObject]].exists(obj => {
@@ -50,6 +50,7 @@ object LabelService {
 
   def linkLabel(path: String, name: String): Future[Any] = {
     val promise = Promise[Any]
+
     AuthService.authenticateRequest(path)
       .post("[\"" + name + "\"]").map {
       request =>
