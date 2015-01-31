@@ -1,10 +1,8 @@
 package services
 
-import play.api.Logger
 import play.api.libs.json.{JsArray, JsValue}
-import play.api.libs.ws.{WSRequestHolder, WSAuthScheme, WS}
-import scala.concurrent._
-import play.api.Play.current
+import play.api.libs.ws.WSRequestHolder
+import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.matching.Regex
 
@@ -28,27 +26,37 @@ object GithubService {
 
   }
 
+  def findApprovals(comments: List[JsValue]): List[JsValue] = {
+    comments.filter(value => (value \ "body").as[String].contains("+1"))
+  }
+
+  def findUsers(comments: List[JsValue]): Array[String] = {
+    val approvals: Regex = """\[approve: *((@[a-z0-9]+),? *)+\]""".r
+    var users: Array[String] = Array()
+
+    comments
+      .filter( value => approvals.findFirstIn((value \ "body").as[String])
+      .isDefined)
+      .map(value => (value \ "body").as[String].replace("[approve: ", "").replace("]", "").replace("@", "").trim())
+      .foreach(requested => users = requested.split(",").map(s => s.trim()) ++ users)
+
+    users
+  }
+
   def fetchComments(comments: String, labels: String): Future[String] = {
     val prom = Promise[String]
     val req: WSRequestHolder = AuthService.authenticateRequest(comments)
 
-    val approvals: Regex = """\[approve: *((@[a-z0-9]+),? *)+\]""".r
-
     req.get().map {
       response =>
         prom.success("tests")
-        var users: Array[String] = Array()
         val comments: List[JsValue] = response.json.as[JsArray].as[List[JsValue]]
-        comments
-          .filter( value => approvals.findFirstIn((value \ "body").as[String])
-          .isDefined)
-          .map(value => (value \ "body").as[String].replace("[approve: ", "").replace("]", "").replace("@", "").trim())
-          .foreach(requested => users = requested.split(",").map(s => s.trim()) ++ users)
+        val users = findUsers(comments)
 
         var isApproved = true
 
         for (user <- users) {
-          val approved = comments.filter(value => (value \ "body").as[String].contains("+1"))
+          val approved = findApprovals(comments)
           if (approved.length >= 1) {
             for (approvee <- approved) {
               if (user != (approvee \ "user" \ "login").as[String]) {
