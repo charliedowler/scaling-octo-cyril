@@ -17,8 +17,12 @@ object Github extends Controller {
   def poll = Action(parse.json) { request =>
     val EventType = request.headers.get("X-Github-Delivery").getOrElse("test")
 
-    val merged: Boolean = (request.body \ "pull_request" \ "merged").toString().toBoolean
+    var merged: Boolean = false
     val action: String = (request.body \ "action").toString()
+
+    if (!(request.body \ "pull_request").toString().isEmpty) {
+      merged = (request.body \ "pull_request" \ "merged").toString().toBoolean
+    }
 
     if (merged || action.equals("closed")) {
       Ok("Pull request was either merged and/or closed")
