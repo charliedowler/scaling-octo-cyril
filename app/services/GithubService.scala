@@ -75,31 +75,33 @@ object GithubService {
         val comments: List[JsValue] = response.json.as[JsArray].as[List[JsValue]]
         val users = findUsers(body, comments)
 
-        var isApproved = true
+        if (users.length >= 1) {
+          var isApproved = true
 
-        for (user <- users) {
-          val approved = findApprovals(comments)
-          if (approved.length >= 1) {
-            for (approvee <- approved) {
-              if (user != (approvee \ "user" \ "login").as[String]) {
-                isApproved = false
+          for (user <- users) {
+            val approved = findApprovals(comments)
+            if (approved.length >= 1) {
+              for (approvee <- approved) {
+                if (user != (approvee \ "user" \ "login").as[String]) {
+                  isApproved = false
+                }
               }
             }
+            else {
+              isApproved = false
+            }
           }
-          else {
-            isApproved = false
-          }
-        }
 
-        LabelService.isLinked(labels, approved).onComplete(isLinked => {
-          val linked = isLinked.get
-          if (isApproved && !linked) {
-            LabelService.linkLabel(labels, approved)
-          }
-          else if (!isApproved && linked) {
-            LabelService.removeLabel(labels + "/" + approved)
-          }
-        })
+          LabelService.isLinked(labels, approved).onComplete(isLinked => {
+            val linked = isLinked.get
+            if (isApproved && !linked) {
+              LabelService.linkLabel(labels, approved)
+            }
+            else if (!isApproved && linked) {
+              LabelService.removeLabel(labels + "/" + approved)
+            }
+          })
+        }
     }
     prom.future
   }
