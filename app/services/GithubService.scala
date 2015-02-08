@@ -5,10 +5,11 @@ import play.api.libs.ws.WSRequestHolder
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.matching.Regex
+import play.Play.{application}
 
 object GithubService {
 
-  val approved = "approved"
+  val approved: String = application().configuration().getString("cyril.label")
 
   def startAsyncTasks(pullrequest_event: JsValue) = {
     val labels_url = (pullrequest_event \ "repository" \ "labels_url").as[String]

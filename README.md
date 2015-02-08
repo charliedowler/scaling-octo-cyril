@@ -24,3 +24,7 @@ $ export github_pat=59996509090e5wgd65a1ccf48e342343297658e321
 $ activator run
 # server started on http://localhost:9000
 ```
+
+Change the label name in `conf/application.conf`
+
+`64| cyril.label = "ready"`
