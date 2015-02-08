@@ -15,7 +15,7 @@ To approve, type `+1` in a comment.
 
 ![demo.gif](demo.gif)
 
-## Setup
+## Setup & Installation
 Until the correct authentication method is implemented, use personal access tokens to authenticate requests.
 ```
 $ export github_user=myusername
@@ -25,6 +25,15 @@ $ activator run
 # server started on http://localhost:9000
 ```
 
-Change the label name in `conf/application.conf`
+You can change the label name in `conf/application.conf`
 
 `64| cyril.label = "ready"`
+
+### Setting up the Github webhook
+
+1. Go to your repository settings
+2. In the left hand navigation panel, click "Webhooks & Services"
+3. Enter `http://{hostname}.com:9000/api/v1/pullrequest` in the `Payload URL` field
+
+Then select the following events under `Let me select individual events`
+![webhook-config.png](webhook-config.png)
