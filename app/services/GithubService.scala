@@ -48,19 +48,29 @@ object GithubService {
     comments.filter(value => (value \ "body").as[String].contains("+1"))
   }
 
-  def findUsers(body: String, comments: List[JsValue]): Array[String] = {
+  def extractUsersFromText(body: String): String = {
     val approvals: Regex = """\[approve: *((@[a-z0-9]+),? *)+\]""".r
+    val parsed = approvals.findFirstIn(body.toCharArray)
 
+    if (parsed.isDefined) {
+      parsed.get
+    }
+    else {
+      null
+    }
+  }
+
+  def findUsers(body: String, comments: List[JsValue]): Array[String] = {
+    var users: Array[String] = Array()
     val clean = (s: String) => s.replace("[approve: ", "").replace("]", "").replace("@", "").trim()
 
-    var users: Array[String] = Array()
-    if (approvals.findFirstIn(body).isDefined) {
-      users = body.split(",").map(clean) ++ users
+    val parsed = extractUsersFromText(body)
+    if (parsed != null) {
+      users = parsed.split(",").map(clean) ++ users
     }
     comments
-      .filter( value => approvals.findFirstIn((value \ "body").as[String])
-      .isDefined)
-      .map(value => clean((value \ "body").as[String]))
+      .filter(value => extractUsersFromText((value \ "body").as[String]) != null)
+      .map(value => clean(extractUsersFromText((value \ "body").as[String])))
       .foreach(requested => users = requested.split(",").map(s => s.trim()) ++ users)
 
     users
