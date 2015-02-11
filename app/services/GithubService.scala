@@ -1,6 +1,7 @@
 package services
 
-import play.api.libs.json.{JsArray, JsValue}
+import play.api.libs.json.{JsValue, JsArray}
+import scala.util.Success
 import play.api.libs.ws.WSRequestHolder
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,12 +34,21 @@ object GithubService {
 
     LabelService.labelExists(labels_url.replace("{/name}", "/" + approved)).onComplete({
       exists =>
+        val labels = issue + "/labels"
         if (!exists.get) {
           LabelService.createLabel(labels_url.replace("{/name}", ""), approved, "199c4b").onComplete(value => {
-            this.fetchComments(body, comments_url, issue + "/labels")
+            this.fetchComments(comments_url).onComplete {
+              case Success(comments: List[JsValue]) => {
+                handleApproval(body, comments, labels)
+              }
+            }
           })
         } else {
-          this.fetchComments(body, comments_url, issue + "/labels")
+          this.fetchComments(comments_url).onComplete {
+            case Success(comments: List[JsValue]) => {
+              handleApproval(body, comments, labels)
+            }
+          }
         }
     })
 
@@ -76,43 +86,49 @@ object GithubService {
     users
   }
 
-  def fetchComments(body: String, comments: String, labels: String): Future[String] = {
-    val prom = Promise[String]
+  def issueHasBeenApproved(users: Array[String], comments: List[JsValue]): Boolean = {
+    var hasBeenApproved = true
+    for (user <- users) {
+      val approved = findApprovals(comments)
+      if (approved.length >= 1) {
+        for (approvee <- approved) {
+          if (user != (approvee \ "user" \ "login").as[String]) {
+            hasBeenApproved = false
+          }
+        }
+      }
+      else {
+        hasBeenApproved = false
+      }
+    }
+    hasBeenApproved
+  }
+
+  def handleApproval(body: String, comments: List[JsValue], labels: String) = {
+    val users = findUsers(body, comments)
+
+    if (users.length >= 1) {
+      val isApproved = issueHasBeenApproved(users, comments)
+
+      LabelService.isLinked(labels, approved).onComplete(isLinked => {
+        val linked = isLinked.get
+        if (isApproved && !linked) {
+          LabelService.linkLabel(labels, approved)
+        }
+        else if (!isApproved && linked) {
+          LabelService.removeLabel(labels + "/" + approved)
+        }
+      })
+    }
+  }
+
+  def fetchComments(comments: String): Future[List[JsValue]] = {
+    val prom = Promise[List[JsValue]]
     val req: WSRequestHolder = AuthService.authenticateRequest(comments)
 
     req.get().map {
       response =>
-        prom.success("tests")
-        val comments: List[JsValue] = response.json.as[JsArray].as[List[JsValue]]
-        val users = findUsers(body, comments)
-
-        if (users.length >= 1) {
-          var isApproved = true
-
-          for (user <- users) {
-            val approved = findApprovals(comments)
-            if (approved.length >= 1) {
-              for (approvee <- approved) {
-                if (user != (approvee \ "user" \ "login").as[String]) {
-                  isApproved = false
-                }
-              }
-            }
-            else {
-              isApproved = false
-            }
-          }
-
-          LabelService.isLinked(labels, approved).onComplete(isLinked => {
-            val linked = isLinked.get
-            if (isApproved && !linked) {
-              LabelService.linkLabel(labels, approved)
-            }
-            else if (!isApproved && linked) {
-              LabelService.removeLabel(labels + "/" + approved)
-            }
-          })
-        }
+        prom.success(response.json.as[JsArray].as[List[JsValue]])
     }
     prom.future
   }
