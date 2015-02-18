@@ -25,9 +25,11 @@ $ activator run
 # server started on http://localhost:9000
 ```
 
-You can change the label name in `conf/application.conf`
+You can change the label name and/or label color in `conf/application.conf`
 
 `64| cyril.label = "ready"`
+
+`65| cyril.color = "199c4b"`
 
 ### Setting up the Github webhook
 

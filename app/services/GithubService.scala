@@ -11,6 +11,7 @@ import play.Play.{application}
 object GithubService {
 
   val approved: String = application().configuration().getString("cyril.label")
+  val color: String = application().configuration().getString("cyril.color")
 
   def startAsyncTasks(pullrequest_event: JsValue) = {
     val labels_url = (pullrequest_event \ "repository" \ "labels_url").as[String]
@@ -36,7 +37,7 @@ object GithubService {
       exists =>
         val labels = issue + "/labels"
         if (!exists.get) {
-          LabelService.createLabel(labels_url.replace("{/name}", ""), approved, "199c4b").onComplete(value => {
+          LabelService.createLabel(labels_url.replace("{/name}", ""), approved, color).onComplete(value => {
             this.fetchComments(comments_url).onComplete {
               case Success(comments: List[JsValue]) => {
                 handleApproval(body, comments, labels)
