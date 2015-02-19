@@ -12,6 +12,7 @@ object GithubService {
 
   val approved: String = application().configuration().getString("cyril.label")
   val color: String = application().configuration().getString("cyril.color")
+  val ready: String = application().configuration().getString("cyril.ready")
 
   def startAsyncTasks(pullrequest_event: JsValue) = {
     val labels_url = (pullrequest_event \ "repository" \ "labels_url").as[String]
@@ -56,7 +57,7 @@ object GithubService {
   }
 
   def findApprovals(comments: List[JsValue]): List[JsValue] = {
-    comments.filter(value => (value \ "body").as[String].contains("+1"))
+    comments.filter(value => (value \ "body").as[String].contains(ready))
   }
 
   def extractUsersFromText(body: String): String = {

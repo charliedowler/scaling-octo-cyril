@@ -25,11 +25,13 @@ $ activator run
 # server started on http://localhost:9000
 ```
 
-You can change the label name and/or label color in `conf/application.conf`
+You can change the label name, color and string to treat a comment as an approval in `conf/application.conf`
 
 `64| cyril.label = "ready"`
 
-`65| cyril.color = "199c4b"`
+`66| cyril.color = "199c4b"`
+
+`68| cyril.ready = "+1"`
 
 ### Setting up the Github webhook
 
