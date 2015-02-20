@@ -10,6 +10,5 @@ libraryDependencies ++= Seq(
   jdbc,
   anorm,
   cache,
-  ws,
-  "net.databinder.dispatch" %% "dispatch-core" % "0.11.2"
+  ws
 )
